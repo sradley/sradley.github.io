@@ -19,16 +19,20 @@
 # in the templates via {{ site.myvariable }}.
 
 title: sradley
-email: stephen.t.radley@protonmail.com
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
-github_username:  sradley
+url: "https://sradley.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 theme: jekyll-theme-console
 remote_theme: b2a3e8/jekyll-theme-console
 plugins:
   - jekyll-feed
+
+header_pages:
+  - index.md
+  - about.md
+
+footer: '<a href="https://github.com/sradley">github.com/sradley</a>'
 
 # Exclude from processing.
 # The following items will not be processed, by default.
