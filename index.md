@@ -7,4 +7,4 @@ layout: home
 ---
 
 **Hello, Friend.**
-Welcome to my blog! Enjoy your stay.
+Welcome to my blog. Enjoy your stay.

